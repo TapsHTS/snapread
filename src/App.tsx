@@ -7,6 +7,7 @@ import UploadZone from './components/UploadZone'
 import MediaGrid, { type Group } from './components/MediaGrid'
 import MediaModal from './components/MediaModal'
 import MapView from './components/MapView'
+import BottomNav from './components/BottomNav'
 import { walk, fromFileList, buildMemories, readGeo, type Entry } from './utils/scan'
 import { kvGet, kvSet } from './utils/idb'
 import type { GeoPoint, SnapMemory } from './types'
@@ -18,7 +19,7 @@ export default function App() {
   const [memories, setMemories] = useState<SnapMemory[]>([]), [query, setQuery] = useState(''), [type, setType] = useState('all'),
     [selected, setSelected] = useState<SnapMemory | null>(null), [from, setFrom] = useState(''), [to, setTo] = useState(''),
     [showFilters, setShowFilters] = useState(false), [busy, setBusy] = useState(false), [notice, setNotice] = useState(''), [saved, setSaved] = useState<any>(null),
-    [points, setPoints] = useState<GeoPoint[]>([]), [showMap, setShowMap] = useState(false)
+    [points, setPoints] = useState<GeoPoint[]>([]), [showMap, setShowMap] = useState(false), [searchOpen, setSearchOpen] = useState(false)
   useEffect(() => { kvGet('root').then(setSaved).catch(() => {}) }, [])
 
   const finish = async (entries: Entry[]) => {
@@ -69,6 +70,8 @@ export default function App() {
   const mapPoints = useMemo(() => points.filter(p => type === 'all' || p.mediaType === type), [points, type])
   const onDay = (day: string, t: 'PHOTO' | 'VIDEO') => { setFrom(day); setTo(day); setType(t); setQuery(''); setShowFilters(true); setShowMap(false); window.scrollTo({ top: 0 }) }
 
+  useEffect(() => { if (searchOpen) document.querySelector<HTMLInputElement>('.searchbox input')?.focus() }, [searchOpen])
+
   const onNavigate = useCallback((d: number) => {
     if (!selected) return
     const next = filtered[filtered.findIndex(m => m.id === selected.id) + d]
@@ -79,7 +82,7 @@ export default function App() {
     window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key)
   }, [])
 
-  return <div className="app-shell"><Navbar query={query} setQuery={setQuery} type={type} setType={setType} map={showMap} setMap={setShowMap} canMap={points.length > 0} />
+  return <div className="app-shell"><Navbar query={query} setQuery={setQuery} type={type} setType={setType} map={showMap} setMap={setShowMap} canMap={points.length > 0} searchOpen={searchOpen} />
     <main className="main-content">
       <div className="hero"><div><div className="eyebrow"><span className="yellow-dot" /> VOTRE ARCHIVE, EN PRIVÉ</div><h1>Votre photothèque.<br /><span>Directement depuis le disque.</span></h1><p>Parcourez des milliers de souvenirs Snapchat, sans rien téléverser.</p></div>
         <div className="hero-art"><div className="art-card art-back"><CalendarDays size={22} /><span>Un jour comme aujourd’hui</span></div><div className="art-card art-front"><div className="art-yellow"><Archive size={27} /></div><strong>{n(memories.length)}</strong><span>souvenirs indexés</span></div><div className="art-spark">✳</div></div></div>
@@ -100,6 +103,7 @@ export default function App() {
       <footer><span className="footer-mark">●</span> Vos souvenirs restent sur votre disque. <span className="footer-separator">·</span> Memories Reader</footer>
     </main>
     {showMap && <MapView points={mapPoints} onClose={() => setShowMap(false)} onDay={onDay} />}
+    <BottomNav type={type} setType={setType} map={showMap} setMap={setShowMap} canMap={points.length > 0} search={searchOpen} setSearch={setSearchOpen} />
     <MediaModal items={filtered} memory={selected} onClose={() => setSelected(null)} onNavigate={onNavigate} />
   </div>
 }
